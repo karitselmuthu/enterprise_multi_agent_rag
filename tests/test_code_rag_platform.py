@@ -36,16 +36,6 @@ class _FakeParser:
         return _FakeTree(self.root)
 
 
-class _ChunkerForTest(TreeSitterChunker):
-    def __init__(self, parser: _FakeParser) -> None:
-        super().__init__()
-        self._parser = parser
-
-    def _get_parser(self, language: str):  # type: ignore[override]
-        _ = language
-        return self._parser
-
-
 class _FakeRetriever:
     def __init__(self) -> None:
         self.index_calls = 0
@@ -200,7 +190,8 @@ class CodeRagPlatformTests(unittest.TestCase):
             )
         )
         self.assertEqual(result["route"]["execution_path"], "deep")
-        self.assertIn("Deep investigation", result["response"])
+        self.assertEqual(result["route"]["model_provider"], "bedrock")
+        self.assertIn("[bedrock:", result["response"])
 
     def test_tree_sitter_chunker_uses_ast_segments(self) -> None:
         source = "import os\n\ndef hello():\n    return 1\n"
@@ -210,7 +201,7 @@ class CodeRagPlatformTests(unittest.TestCase):
             len(source),
             [_FakeNode("import_statement", 0, 9), _FakeNode("function_definition", 11, len(source))],
         )
-        chunker = _ChunkerForTest(_FakeParser(root))
+        chunker = TreeSitterChunker(parser_resolver=lambda language: _FakeParser(root))
         chunks = chunker.chunk("module.py", source, chunk_size=30)
         self.assertEqual(len(chunks), 2)
         self.assertIn("import os", chunks[0])

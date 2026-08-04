@@ -11,7 +11,7 @@ class EvaluationTests(unittest.TestCase):
         dataset = Path(__file__).resolve().parents[1] / "evals" / "golden_phase0.json"
         summary = run_prompt_regression(gateway, dataset)
         self.assertEqual(summary["failed"], 0)
-        self.assertEqual(summary["passed"], 2)
+        self.assertEqual(summary["passed"], 6)
 
 
 if __name__ == "__main__":

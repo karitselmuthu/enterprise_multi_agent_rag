@@ -1,20 +1,12 @@
 from __future__ import annotations
 
 import hashlib
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from code_rag_platform._pathutil import ensure_src_path
 from code_rag_platform.config.settings import AppSettings
-
-
-def _ensure_src_path() -> None:
-    repo_root = Path(__file__).resolve().parents[5]
-    src_path = repo_root / "src"
-    src_str = str(src_path)
-    if src_str not in sys.path:
-        sys.path.insert(0, src_str)
 
 
 @dataclass(frozen=True)
@@ -32,7 +24,7 @@ class LiveIndexedRetriever:
             self.pipeline = pipeline
             self.graph_store = graph_store
             return
-        _ensure_src_path()
+        ensure_src_path()
         from phase0.phase1.dependency_graph import DependencyGraphStore
         from phase0.phase1.ingestion import ChunkIndexer
         from phase0.phase1.pipeline import Phase1IndexerPipeline

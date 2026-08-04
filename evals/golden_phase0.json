@@ -3,12 +3,37 @@
     "id": "owner_lookup_fast_path",
     "prompt": "Who owns service billing-api and where is its runbook?",
     "task_type": "ownership_lookup",
-    "expected_contains": ["[local:"]
+    "expected_contains": ["[local:qwen2.5-coder-1.5b-instruct-q4]"]
+  },
+  {
+    "id": "code_search_uses_8gb_local_model",
+    "prompt": "find the retry helper",
+    "task_type": "code_search",
+    "expected_contains": ["[local:qwen2.5-coder-1.5b-instruct-q4]"]
   },
   {
     "id": "security_review_cloud_escalation",
     "prompt": "Perform a security review for auth gateway token handling",
     "task_type": "security_review",
     "expected_contains": ["[bedrock:"]
+  },
+  {
+    "id": "architecture_review_premium_task_escalates",
+    "prompt": "review the service mesh design",
+    "task_type": "architecture_review",
+    "expected_contains": ["[bedrock:anthropic.claude-3-5-sonnet]"]
+  },
+  {
+    "id": "incident_rca_high_risk_escalates",
+    "prompt": "checkout is down",
+    "task_type": "incident_rca",
+    "risk_level": "high",
+    "expected_contains": ["[bedrock:anthropic.claude-3-5-sonnet]"]
+  },
+  {
+    "id": "deep_code_fix_forced_cloud_on_8gb_laptop",
+    "prompt": "fix the flaky retry bug",
+    "task_type": "deep_code_fix",
+    "expected_contains": ["[bedrock:anthropic.claude-3-5-sonnet]"]
   }
 ]

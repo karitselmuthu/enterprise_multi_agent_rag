@@ -14,6 +14,7 @@ class GoldenCase:
     prompt: str
     task_type: str
     expected_contains: tuple[str, ...]
+    risk_level: str = "low"
 
 
 def load_golden_dataset(path: str | Path) -> list[GoldenCase]:
@@ -26,6 +27,7 @@ def load_golden_dataset(path: str | Path) -> list[GoldenCase]:
                 prompt=item["prompt"],
                 task_type=item["task_type"],
                 expected_contains=tuple(item["expected_contains"]),
+                risk_level=item.get("risk_level", "low"),
             )
         )
     return cases
@@ -41,7 +43,7 @@ def run_prompt_regression(gateway: ModelGateway, dataset_path: str | Path) -> di
                 agent_name="verification-agent",
                 prompt=case.prompt,
                 task_type=case.task_type,
-                risk_level="low",
+                risk_level=case.risk_level,
             )
         )
         if all(expected in result.text for expected in case.expected_contains):

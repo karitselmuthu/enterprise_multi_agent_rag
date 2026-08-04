@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from code_rag_platform._pathutil import ensure_src_path
 from code_rag_platform.agents.router import ExecutionRouter, RouteInput
 from code_rag_platform.config.settings import AppSettings
 from code_rag_platform.core.guardrails.dlp_scrubber import DLPScrubber
@@ -33,16 +34,30 @@ class OrchestratorState:
 class PhaseOrchestrator:
     _retrieval_task_types = {"ownership_lookup", "code_search", "repo_metadata_lookup", "incident_rca"}
 
-    def __init__(self, settings: AppSettings | None = None, retriever: LiveIndexedRetriever | None = None) -> None:
+    def __init__(
+        self,
+        settings: AppSettings | None = None,
+        retriever: LiveIndexedRetriever | None = None,
+        gateway: Any | None = None,
+    ) -> None:
         self.settings = settings or AppSettings()
         self.router = ExecutionRouter(self.settings)
         self.scrubber = DLPScrubber()
         self.retriever = retriever
+        self.gateway = gateway
 
     def _get_retriever(self) -> LiveIndexedRetriever:
         if self.retriever is None:
             self.retriever = LiveIndexedRetriever(self.settings)
         return self.retriever
+
+    def _get_gateway(self) -> Any:
+        if self.gateway is None:
+            ensure_src_path()
+            from phase0.foundation.gateway import ModelGateway
+
+            self.gateway = ModelGateway()
+        return self.gateway
 
     def prepare(self, state: OrchestratorState) -> OrchestratorState:
         """Scrub, index, classify the execution path, and retrieve. Shared by run() and the LangGraph nodes."""
@@ -94,26 +109,39 @@ class PhaseOrchestrator:
         state.verified = decision.needs_verification
         return state
 
-    def respond_fast(self, state: OrchestratorState) -> OrchestratorState:
-        state.response = (
-            f"Fast path result for: {state.sanitized_query[:180]} "
-            f"(hits={len(state.retrieval_hits)}, deps={len(state.dependency_context)})"
+    def _generate(self, state: OrchestratorState, label: str) -> OrchestratorState:
+        """Call the Phase 0 multi-LLM gateway (local/Bedrock/Vertex, 8GB-aware) for the actual response."""
+        from phase0.foundation.models import InferenceRequest
+
+        context_lines = [hit.get("payload", {}).get("text", "") for hit in state.retrieval_hits]
+        if state.dependency_context:
+            context_lines.append("Dependencies: " + ", ".join(state.dependency_context))
+        context = "\n".join(line for line in context_lines if line)
+        prompt = f"{state.sanitized_query}\n\nContext:\n{context}" if context else state.sanitized_query
+
+        result = self._get_gateway().infer(
+            InferenceRequest(
+                user_id="code-rag-platform",
+                agent_name=f"{label}-agent",
+                prompt=prompt,
+                task_type=state.task_type,
+                risk_level=state.risk_level,
+                metadata={"force_cloud": state.route["escalate_to_cloud"]},
+            )
         )
+        state.route["model_provider"] = result.provider
+        state.route["model"] = result.model
+        state.response = result.text
         return state
+
+    def respond_fast(self, state: OrchestratorState) -> OrchestratorState:
+        return self._generate(state, "fast")
 
     def respond_deep(self, state: OrchestratorState) -> OrchestratorState:
-        state.response = (
-            f"Deep investigation prepared for cloud escalation: {state.sanitized_query[:180]} "
-            f"(hits={len(state.retrieval_hits)}, deps={len(state.dependency_context)})"
-        )
-        return state
+        return self._generate(state, "deep")
 
     def respond_standard(self, state: OrchestratorState) -> OrchestratorState:
-        state.response = (
-            f"Standard investigation prepared: {state.sanitized_query[:180]} "
-            f"(hits={len(state.retrieval_hits)}, deps={len(state.dependency_context)})"
-        )
-        return state
+        return self._generate(state, "standard")
 
     _responders: dict[str, str] = {"fast": "respond_fast", "deep": "respond_deep", "standard": "respond_standard"}
 
