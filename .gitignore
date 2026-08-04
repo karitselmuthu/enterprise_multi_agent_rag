@@ -3,6 +3,9 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .DS_Store
+.venv/
+*.egg-info/
+code-rag-platform/data/
 .env
 .env.*
 !.env.example
