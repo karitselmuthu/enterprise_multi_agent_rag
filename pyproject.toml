@@ -1,0 +1,20 @@
+[project]
+name = "enterprise-multi-agent-rag"
+version = "0.1.0"
+description = "Phase 0 foundation for enterprise multi-agent RAG."
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+phase1 = [
+  "tree-sitter>=0.22.0",
+  "tree-sitter-languages>=1.10.2",
+  "qdrant-client>=1.10.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

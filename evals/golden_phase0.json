@@ -1,0 +1,14 @@
+[
+  {
+    "id": "owner_lookup_fast_path",
+    "prompt": "Who owns service billing-api and where is its runbook?",
+    "task_type": "ownership_lookup",
+    "expected_contains": ["[local:"]
+  },
+  {
+    "id": "security_review_cloud_escalation",
+    "prompt": "Perform a security review for auth gateway token handling",
+    "task_type": "security_review",
+    "expected_contains": ["[bedrock:"]
+  }
+]
